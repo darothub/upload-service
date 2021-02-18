@@ -6,6 +6,7 @@ import com.darothub.uploadservice.model.dto.UploadImageDTO;
 import com.darothub.uploadservice.model.response.ResponseModel;
 import com.darothub.uploadservice.model.response.SuccessResponse;
 import com.darothub.uploadservice.service.UploadServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -21,6 +22,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1")
+@Slf4j
 public class UploadImageController {
 
     @Autowired
@@ -31,21 +33,11 @@ public class UploadImageController {
 
     @PostMapping("/upload")
     public ResponseEntity<ResponseModel> uploadToDb(@RequestParam("file") MultipartFile file) throws IOException {
-        UploadImage uploadImage = uploadService.uploadToDb(file);
-        UploadImageDTO imageUploadDTO = new UploadImageDTO();
-        if(uploadImage != null && uploadImage.getFileType().matches(ConstantUtils.IMAGE_PATTERN)){
-            String uri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/v1/download/")
-                    .path(uploadImage.getFileId())
-                    .toUriString();
-            imageUploadDTO.setDownloadUri(uri);
-            imageUploadDTO.setFileId(uploadImage.getFileId());
-            imageUploadDTO.setFileName(uploadImage.getFileName());
-            imageUploadDTO.setFileType(uploadImage.getFileType());
-            imageUploadDTO.setUploadStatus(true);
+        if(file != null && file.getContentType().matches(ConstantUtils.IMAGE_PATTERN)){
+            UploadImageDTO imageUploadDTO =  uploadService.uploadToDb(file);
             return handleSuccessResponseEntity("Image uploaded successfully", HttpStatus.OK, imageUploadDTO);
         }
-        return handleSuccessResponseEntity("Invalid image format", HttpStatus.EXPECTATION_FAILED, null);
+        return handleSuccessResponseEntity("Invalid image format", HttpStatus.BAD_REQUEST, null);
 
     }
 
@@ -63,6 +55,6 @@ public class UploadImageController {
         successResponse.setMessage(message);
         successResponse.setStatus(status.value());
         successResponse.setPayload(payload);
-        return ResponseEntity.ok(successResponse);
+        return new ResponseEntity<>(successResponse, status);
     }
 }
